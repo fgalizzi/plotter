@@ -1,2 +1,4 @@
 *.dat
 *.root
+.clangd
+ignore_data/

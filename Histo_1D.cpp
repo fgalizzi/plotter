@@ -1,5 +1,7 @@
 #include "DUNEStyle.h"
 
+#include <TFile.h>
+
 TString root_file   =  "Self_FOM.root";
 TString root_folder =  "jitter";
 TString histo_name  =  "TRIGGER_5";
