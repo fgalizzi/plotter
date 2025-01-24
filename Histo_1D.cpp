@@ -2,13 +2,13 @@
 
 #include <TFile.h>
 
-TString root_file   =  "Self_FOM.root";
-TString root_folder =  "jitter";
-TString histo_name  =  "TRIGGER_5";
+TString root_file   =  "";
+TString root_folder =  "";
+TString histo_name  =  "";
 
 // Settings
-TString title_x = "x_axis";
-TString title_y = "y_axis";
+TString title_x = "";
+TString title_y = "";
 
 bool log_x  = false;
 bool log_y  = false;

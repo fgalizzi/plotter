@@ -1,5 +1,6 @@
 #include <TFile.h>
 #include <TMultiGraph.h>
+#include <TGraphErrors.h>
 #include <algorithm>
 #include <iostream>
 #include <string>
@@ -10,39 +11,36 @@
 
 // The macro plots either TGraphs with the same name but contained
 // in different files, or TGraphs with different name, but in the
-// same root file
+// same root file.
+// You can easily modify the macro to plot TGraph / TGraphErrors
 
 // ***************************************************************
 // *** Files, TGraphs and settings *******************************
 std::vector<TString> root_files   =  {
-  "~/CERN/M1/cb_nov_24/cb/Daphne_StandAlone/FFT_20241204_M3_AFE0_Ch0_Vgain1000_raw.root",
-  "~/CERN/M1/cb_nov_24/cb/Daphne_StandAlone/FFT_20241204_M3_AFE0_Ch2_Vgain1000_raw.root",
-  "~/CERN/M1/cb_nov_24/cb/Daphne_StandAlone/FFT_20241204_M4_AFE0_Ch1_Vgain1000_raw.root",
-  "~/CERN/M1/cb_nov_24/cb/Daphne_StandAlone/FFT_20241204_M4_AFE0_Ch3_Vgain1000_raw.root",
+  "",
   };
 
 
+// DON'T PUT ";1" and TERMINATE WITH "/"
 TString root_dir = "";  
 
+// If any subfolder, name can be "subfolder1/trgraph_name;1"
 std::vector<TString> tgraph_names =  {
-  "Graph;1",
   };
 
-std::vector<TString> tgraph_titles = {
-  "M3 - AFE 0 - Ch 0",
-  "M3 - AFE 0 - Ch 2",
-  "M4 - AFE 0 - Ch 1",
-  "M4 - AFE 0 - Ch 3",
-};
+TString multigraph_title = "";
+
+// Leave it empty if the tgraph_names are already descriptive
+std::vector<TString> tgraph_titles = {};
 
 // ***************************************************************
 // ***************************************************************
 
 // Settings
-TString title_x = "Frequency [MHz]";
-TString title_y = "FFT [db]";
+TString title_x = "";
+TString title_y = "";
 
-bool log_x  = true;
+bool log_x  = false;
 bool log_y  = false;
 bool grid_h = true;
 bool grid_v = true;
@@ -50,8 +48,8 @@ bool grid_v = true;
 // If (low==0 and up==0) it will set it automatically
 double x_axis_low = 0.;
 double x_axis_up  = 0.;
-double y_axis_low = -72.5;
-double y_axis_up  = -44.;
+double y_axis_low = 0.;
+double y_axis_up  = 0.;
 
 // ***************************************************************
 // ***************************************************************
@@ -74,7 +72,7 @@ void TMultiGraph_line(){
     loop_on_files = false;
     loop_on_tgraphs = true;
   }
-  TGraph* g[n_graph];
+  TGraphErrors* g[n_graph];
   TMultiGraph* mg = new TMultiGraph();
 
   TCanvas* gc;
@@ -102,13 +100,15 @@ void TMultiGraph_line(){
     // Modify the Graph according to the settings
     g[i]->SetLineWidth(4);
     g[i]->SetLineColor(color_list[i%color_list.size()].GetNumber());
-    g[i]->SetTitle(tgraph_titles[i]); 
+    g[i]->SetMarkerColor(color_list[i%color_list.size()].GetNumber());
+    g[i]->SetMarkerStyle(1);
+    if (tgraph_titles.size()>0) g[i]->SetTitle(tgraph_titles[i]); 
     
     mg->Add(g[i], "l");
     input_file.Close();
   }
 
-
+  mg->SetTitle(multigraph_title);
   mg->GetXaxis()->CenterTitle();
   mg->GetYaxis()->CenterTitle();
   mg->GetXaxis()->SetTitle(title_x);
