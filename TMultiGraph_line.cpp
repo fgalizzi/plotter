@@ -1,9 +1,6 @@
 #include <TFile.h>
 #include <TMultiGraph.h>
 #include <TGraphErrors.h>
-#include <algorithm>
-#include <iostream>
-#include <string>
 
 #include "DUNEStyle.h"
 #include "Rtypes.h"
@@ -20,13 +17,9 @@ std::vector<TString> root_files   =  {
   "",
   };
 
-
-// DON'T PUT ";1" and TERMINATE WITH "/"
-TString root_dir = "";  
-
 // If any subfolder, name can be "subfolder1/trgraph_name;1"
 std::vector<TString> tgraph_names =  {
-  };
+};
 
 TString multigraph_title = "";
 
@@ -96,7 +89,7 @@ void TMultiGraph_line(){
     else{
       tg_name = tgraph_names[0];
     }
-    input_file.GetObject(root_dir+tg_name, g[i]);
+    input_file.GetObject(tg_name, g[i]);
     // Modify the Graph according to the settings
     g[i]->SetLineWidth(4);
     g[i]->SetLineColor(color_list[i%color_list.size()].GetNumber());

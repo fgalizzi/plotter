@@ -12,6 +12,8 @@
 
 // n.b.  much of this style ripped off of NOvA official style
 
+#define DUNESTYLE_ENABLE_AUTOMATICALLY 0
+
 #ifndef DUNE_STYLE_H
 #define DUNE_STYLE_H
 
