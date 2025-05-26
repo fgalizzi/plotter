@@ -4,33 +4,28 @@
 // in different files, or TH1 with different name, but in the
 // same root file.
 std::vector<TString> root_files   =  {
-  "../Compute_Likelihood_fiducial_norefl_30fake.root"
 };
 
 // If any subfolder, name can be "subfolder1/th1_name;1"
 std::vector<TString> histo_names = {
-  "h_Fq;1",
-  "h_Fq_fake;1",
 };
 
 // Leave it empty if the th1_names are already descriptive
 std::vector<TString> histo_titles = {
-  "Likelihood_{TrueEvent}",
-  "Likelihood_{FalseEvent}",
 };
 
 // Settings
-TString title_x = "-log(Likelihood)";
-TString title_y = "Counts";
+TString title_x = "xx";
+TString title_y = "yy";
 
-bool fill_histo = false;
-double fill_alpha = 0.3;
+double fill_alpha = 0.; // Opacity of filling color
+bool show_marker  = 1;
 
 double min_y = 1.; // If using log_y, set it > 0
 
 bool log_x  = false;
-bool log_y  = true;
-bool grid_h = true;
+bool log_y  = false;
+bool grid_h = false;
 bool grid_v = false;
 
 // If (low==0 and up==0) it will set it automatically
@@ -71,43 +66,55 @@ void Histo_1D(){
     loop_on_tgraphs = true;
   }
 
-  TH1D* h[n_graph];
+  std::vector<TH1*> histos;
+  std::vector<TEfficiency*> efficiencies;
 
-  for(size_t i=0; i<n_graph; i++){
-    TString file_name;
-    if(loop_on_files==true) file_name = root_files[i];
-    else file_name = root_files[0];
-   
+  for (size_t i = 0; i < n_graph; i++) {
+    TString file_name = loop_on_files ? root_files[i] : root_files[0];
     TFile* input_file = TFile::Open(file_name);
+    if (!input_file || input_file->IsZombie()) continue;
 
-    TString tg_name;
-    if(loop_on_tgraphs==true){
-      tg_name = histo_names[i];
-    }
-    else{
-      tg_name = histo_names[0];
-    }
-    input_file->GetObject(tg_name, h[i]);
-    if (h[i]==nullptr) {
-      std::cout << "TGraph " << tg_name << " not found in file " << file_name << std::endl;
+    TString obj_name = loop_on_tgraphs ? histo_names[i] : histo_names[0];
+    TObject* obj = input_file->Get(obj_name);
+    if (!obj) {
+      std::cout << "Object " << obj_name << " not found in " << file_name << std::endl;
       continue;
     }
-    CenterTitles(h[i]);
-    h[i]->SetLineWidth(6);
-    h[i]->SetLineColor(color_list[i%color_list.size()].GetNumber());
-    h[i]->SetMarkerColor(color_list[i%color_list.size()].GetNumber());
-    if (fill_histo==true){
-      h[i]->SetFillColorAlpha(color_list[i%color_list.size()].GetNumber(), fill_alpha);
-    }
-    // h[i]->SetMarkerStyle(21); h[i]->SetMarkerColor(kBlack);
-    if (histo_titles.size()>0) h[i]->SetTitle(histo_titles[i]); 
-    
-    if (x_min > h[i]->GetXaxis()->GetXmin()) x_min = h[i]->GetXaxis()->GetXmin();
-    if (x_max < h[i]->GetXaxis()->GetXmax()) x_max = h[i]->GetXaxis()->GetXmax();
-    if (y_min > h[i]->GetMinimum()) y_min = h[i]->GetMinimum();
-    if (y_max < h[i]->GetMaximum()) y_max = h[i]->GetMaximum();
-  }
 
+    if (obj->InheritsFrom(TH1::Class())) {
+      TH1* h = static_cast<TH1*>(obj);
+      if (!h) continue;
+
+      make_histo_cute(h, line_width, i, fill_alpha, show_marker);
+      if (!histo_titles.empty()) h->SetTitle(histo_titles[i]);
+
+      histos.push_back(h);
+
+      if (x_min > h->GetXaxis()->GetXmin()) x_min = h->GetXaxis()->GetXmin();
+      if (x_max < h->GetXaxis()->GetXmax()) x_max = h->GetXaxis()->GetXmax();
+      if (y_min > h->GetMinimum()) y_min = h->GetMinimum();
+      if (y_max < h->GetMaximum()) y_max = h->GetMaximum();
+    }
+    else if (obj->InheritsFrom(TEfficiency::Class())) {
+      TEfficiency* eff = static_cast<TEfficiency*>(obj);
+      if (!eff) continue;
+
+      make_histo_cute(eff, line_width, i, fill_alpha, show_marker);
+      if (!histo_titles.empty()) eff->SetTitle(histo_titles[i]);
+
+      efficiencies.push_back(eff);
+
+
+      auto* htot = eff->GetTotalHistogram();
+      if (htot) {
+        if (x_min > htot->GetXaxis()->GetXmin()) x_min = htot->GetXaxis()->GetXmin();
+        if (x_max < htot->GetXaxis()->GetXmax()) x_max = htot->GetXaxis()->GetXmax();
+      }
+
+      y_min = 0.0;
+      y_max = 1.05;
+    }
+  }
 
   std::cout << x_min << " " << x_max << " " << y_min << " " << y_max << std::endl;
 
@@ -146,10 +153,23 @@ void Histo_1D(){
 
   gc->SetLogy(log_y); gc->SetLogx(log_x);
   gc->SetGrid(grid_v, grid_h);
-  
-  for(int i=0; i<n_graph; i++){
-    h[i]->Draw("same");
+ 
+  for (auto& h : histos) {
+    CenterTitles(h);
+    if (show_marker) h->Draw("hist same E2");
+    else h->Draw("hist same");
   }
+
+  for (auto& eff : efficiencies) {
+    if (show_marker) eff->Draw("same E2");
+    else eff->Draw("same");
+    gPad->Update();
+    auto* h_axis = eff->GetPaintedGraph()->GetHistogram();
+    if (h_axis) {
+      h_axis->GetXaxis()->CenterTitle();
+      h_axis->GetYaxis()->CenterTitle();
+    }
+  } 
 
   auto legend = gc->BuildLegend();
   legend->SetFillStyle(0);
