@@ -1,4 +1,7 @@
-#include "Utils.hpp"
+#include "Rtypes.h"
+#include "TStyle.h"
+#include "PlotterUtils.hpp"
+#include <string>
 
 // The macro plots either TH1 with the same name but contained
 // in different files, or TH1 with different name, but in the
@@ -10,35 +13,64 @@ std::vector<TString> root_files   =  {
 std::vector<TString> histo_names = {
 };
 
+// Very comfy to quickly save the canvas from the GUI
+TString canvas_name = "";
+
 // Leave it empty if the th1_names are already descriptive
 std::vector<TString> histo_titles = {
 };
 
-// Settings
-TString title_x = "xx";
-TString title_y = "yy";
+std::vector<int> color_idxs = {
+};
 
-double fill_alpha = 0.; // Opacity of filling color
-bool show_marker  = 1;
-
-double min_y = 1.; // If using log_y, set it > 0
-
+// --- Fit ----------------------------------------------------------
+bool single_fit = 0;
+// --- Palette ------------------------------------------------------
+// Choose among: Baseline, ColdToWarm, WarmToCold
+// If unknown, it will use the Baseline palette
+std::string palette = "";
+// --- Axis title ---------------------------------------------------
+TString title_x = "";
+TString title_y = "";
+// --- Log scale and grid -------------------------------------------
 bool log_x  = false;
 bool log_y  = false;
-bool grid_h = false;
-bool grid_v = false;
-
+bool grid_h = 1;
+bool grid_v = 1;
+// --- Rebinning ----------------------------------------------------
+int rebin = 0; // If rebin<=0 no rebinning
+// --- Axis range ---------------------------------------------------
 // If (low==0 and up==0) it will set it automatically
-double x_axis_low = 0.;
-double x_axis_up  = 0.;
-double y_axis_low = 0.;
-double y_axis_up  = 0.;
+bool use_custom_frame = 1;
+// double x_axis_low = 0.;
+// double x_axis_up  = 0.;
+// double y_axis_low = 0.;
+// double y_axis_up  = 0.;
+double min_y = 1.; // If using log_y, set it > 0
+// --- Graph settings -----------------------------------------------
+// NB: "hist" remove the fit, if any
+std::string draw_option = "hist"; // only marker and errors "E", simple histo and errors "hist E"
+int h_line_width = 8; // Line width of the TH1(s)
+float fill_alpha = 0.; // Opacity of filling color
+bool show_marker  = 1;
+float marker_alpha = 1;
+// --- Legend settings ----------------------------------------------
+int legend_ncolumns = 1;
+float margin = 0.14;
+const char* entry_opt = "l"; // Options for the legend entries
+// --- Dune Marker --------------------------------------------------
+TString dune_marker = ""; // Options: "preliminary", "simulation"
+
+
 
 // ***************************************************************
 // ***************************************************************
 
 void Histo_1D(){
   SetMyStyle();
+  gStyle->SetOptFit(0);
+  
+  std::vector<Int_t> color_list = set_palette(palette, histo_names.size()); 
   
   double x_min = 1e100;
   double x_max = -1e100;
@@ -84,8 +116,12 @@ void Histo_1D(){
     if (obj->InheritsFrom(TH1::Class())) {
       TH1* h = static_cast<TH1*>(obj);
       if (!h) continue;
+      if (rebin>1) h->Rebin(rebin);
 
-      make_histo_cute(h, line_width, i, fill_alpha, show_marker);
+      int color_idx = (color_idxs.size()>0) ? color_idxs[i] : i;
+      if (single_fit) make_histo_cute(h, h_line_width, -1, fill_alpha, show_marker, marker_alpha);
+      else            make_histo_cute(h, h_line_width,  color_list[color_idx%color_list.size()], fill_alpha, show_marker, marker_alpha);
+      
       if (!histo_titles.empty()) h->SetTitle(histo_titles[i]);
 
       histos.push_back(h);
@@ -99,10 +135,15 @@ void Histo_1D(){
       TEfficiency* eff = static_cast<TEfficiency*>(obj);
       if (!eff) continue;
 
-      make_histo_cute(eff, line_width, i, fill_alpha, show_marker);
+
+      int color_idx = (color_idxs.size()>0) ? color_idxs[i] : i;
+      if (single_fit) make_histo_cute(eff, line_width, -1, fill_alpha, show_marker);
+      else            make_histo_cute(eff, line_width,  color_list[color_idx%color_list.size()], fill_alpha, show_marker);
+      
       if (!histo_titles.empty()) eff->SetTitle(histo_titles[i]);
 
       efficiencies.push_back(eff);
+      std::cout << "dd" << std::endl;
 
 
       auto* htot = eff->GetTotalHistogram();
@@ -118,8 +159,9 @@ void Histo_1D(){
 
   std::cout << x_min << " " << x_max << " " << y_min << " " << y_max << std::endl;
 
-  TCanvas* gc = new TCanvas("gc", "gc", 0, 0, canvas_width, canvas_height);
+  TCanvas* gc = new TCanvas(canvas_name, canvas_name, 0, 0, canvas_width, canvas_height);
   gc->cd();
+# // Set transparent background
 
   if (y_min == 0 && log_y) y_min = min_y;
   
@@ -135,7 +177,7 @@ void Histo_1D(){
 
   if (!log_y) {
     double dy = y_max - y_min;
-    y_min = y_min - dy*0.05;
+    if (y_min != 0) y_min = y_min - dy*0.05;
     y_max = y_max + dy*0.05;
   }
   else {
@@ -144,25 +186,38 @@ void Histo_1D(){
   }
 
 
-  auto frame = gc->DrawFrame(x_min, y_min, x_max, y_max);
+  TH1* frame;
+    // if (show_marker) h->Draw("hist same E2");
+  std::string s_first_draw_option = draw_option;
+  std::string s_other_draw_option = "SAME "+s_first_draw_option;
+  const char* first_draw_option = s_first_draw_option.c_str();
+  const char* other_draw_option = s_other_draw_option.c_str();
+
+  if (use_custom_frame){
+    frame = gc->DrawFrame(x_min, y_min, x_max, y_max);
+  }
+  else if (histos.size()>efficiencies.size()){
+    frame = histos[0];
+  }
+
   frame->GetXaxis()->SetTitle(title_x);   frame->GetYaxis()->SetTitle(title_y); 
   frame->GetXaxis()->CenterTitle();       frame->GetYaxis()->CenterTitle();
-  frame->GetXaxis()->SetTitleFont(42);   frame->GetYaxis()->SetTitleFont(42);
+  frame->GetXaxis()->SetTitleFont(42);    frame->GetYaxis()->SetTitleFont(42);
   frame->GetXaxis()->SetTitleOffset(1.5); frame->GetYaxis()->SetTitleOffset(1.3);
-  frame->GetXaxis()->SetTitleSize(0.04);    frame->GetYaxis()->SetTitleSize(0.04);
+  frame->GetXaxis()->SetTitleSize(0.04);  frame->GetYaxis()->SetTitleSize(0.04);
 
   gc->SetLogy(log_y); gc->SetLogx(log_x);
   gc->SetGrid(grid_v, grid_h);
  
+  if (use_custom_frame) frame->Draw();
+  else                  frame->Draw(first_draw_option);
   for (auto& h : histos) {
     CenterTitles(h);
-    if (show_marker) h->Draw("hist same E2");
-    else h->Draw("hist same");
+    h->Draw(other_draw_option);
   }
 
   for (auto& eff : efficiencies) {
-    if (show_marker) eff->Draw("same E2");
-    else eff->Draw("same");
+    eff->Draw(other_draw_option);
     gPad->Update();
     auto* h_axis = eff->GetPaintedGraph()->GetHistogram();
     if (h_axis) {
@@ -171,17 +226,16 @@ void Histo_1D(){
     }
   } 
 
-  auto legend = gc->BuildLegend();
-  legend->SetFillStyle(0);
-  legend->SetBorderSize(0);
-  legend->SetTextSize(0.026);
-  legend->SetTextFont(42);
-  legend->SetMargin(0.15);
-  legend->SetEntrySeparation(0.2);
-  auto entries = legend->GetListOfPrimitives();
-  auto entry = static_cast<TLegendEntry*>(entries->At(0));
-  entries->Remove(entry);
+  auto legend = build_legend(gc, entry_opt,
+                             0.7, 0.7, 0.9, 0.9,
+                             legend_ncolumns, margin);
+  // auto entries = legend->GetListOfPrimitives();
+  // auto entry = static_cast<TLegendEntry*>(entries->At(0));
+  // entries->Remove(entry);
   legend->Draw();
+  gStyle->SetOptStat(0); gStyle->SetOptFit(0); gStyle->SetOptTitle(0);
+  gPad->RedrawAxis();
+  if (dune_marker == "preliminary") Preliminary();
   gc->Modified(); gc->Update();
   return;
 }

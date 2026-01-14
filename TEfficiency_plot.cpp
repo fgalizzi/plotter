@@ -1,29 +1,26 @@
-#include "DUNEStyle.h"
-
 #include "TFile.h"
 #include "TCanvas.h"
 #include "TEfficiency.h"
+#include "PlotterUtils.hpp"
 
-TString root_file   =  "./ignore_data/Mu_Expected_x30cm_yz50cm_fiducial_norefl.root";
-// DON'T PUT ";1" and TERMINATE WITH "/"
+TString root_file   =  "";
 TString root_folder =  "";
-TString tgraph_name =  "HitProb_ExpPe";
+TString tgraph_name =  "";
 
-bool TEfficiency_to_TGraphErrors = true;
+bool TEfficiency_to_TGraphErrors = false;
 
 // Settings
 TString title_x = "x_axis";
 TString title_y = "y_axis";
 
-bool log_x  = true;
-bool log_y  = false;
-bool grid_h = true;
-bool grid_v = false;
+bool log_x  = 0;
+bool log_y  = 0;
+bool grid_h = 1;
+bool grid_v = 0;
 
-using namespace dunestyle;
 
 void TEfficiency_plot(){
-  SetDuneStyle();
+  // SetDuneStyle();
 
   TFile input_file(root_file, "READ");
   TEfficiency* g = nullptr;
@@ -37,10 +34,11 @@ void TEfficiency_plot(){
   gc->SetGrid(grid_v, grid_h);
   
   g->SetLineWidth(4);
+  CenterTitles(g);
   // g->GetXaxis()->CenterTitle();
   // g->GetYaxis()->CenterTitle();
 
-  g->SetLineColor(colors::kOkabeItoOrange);
+  // g->SetLineColor(colors::kOkabeItoOrange);
 
   g->Draw();
 
