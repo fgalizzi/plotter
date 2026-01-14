@@ -104,11 +104,11 @@ void Bidistribution(){
   gc->SetGrid(grid_v, grid_h);
   
   h2_distr->SetTitle("");
-  h2_distr->GetXaxis()->SetTitleFont(font); h2_distr->GetYaxis()->SetTitleFont(font);
-  h2_distr->GetXaxis()->SetTitleSize(title_font_size);    h2_distr->GetYaxis()->SetTitleSize(title_font_size);
+  h2_distr->GetXaxis()->SetTitleFont(font);             h2_distr->GetYaxis()->SetTitleFont(font);
+  h2_distr->GetXaxis()->SetTitleSize(title_font_size);  h2_distr->GetYaxis()->SetTitleSize(title_font_size);
   h2_distr->GetXaxis()->SetTitleOffset(title_offset_x); h2_distr->GetYaxis()->SetTitleOffset(title_offset_y);
-  h2_distr->GetXaxis()->SetLabelFont(font); h2_distr->GetYaxis()->SetLabelFont(font);
-  h2_distr->GetXaxis()->SetLabelSize(label_font_size);    h2_distr->GetYaxis()->SetLabelSize(label_font_size);
+  h2_distr->GetXaxis()->SetLabelFont(font);             h2_distr->GetYaxis()->SetLabelFont(font);
+  h2_distr->GetXaxis()->SetLabelSize(label_font_size);  h2_distr->GetYaxis()->SetLabelSize(label_font_size);
   h2_distr->GetXaxis()->SetLabelOffset(label_offset_x); h2_distr->GetYaxis()->SetLabelOffset(label_offset_y);
   
   TColor::CreateGradientColorTable(nStops, stops, red, green, blue, NColors);
