@@ -89,7 +89,7 @@ std::vector<Int_t> createColdToWarmPalette(Int_t nSteps) {
     return coldToWarmColors;
 }
 
-std::vector<Int_t> createWarmToColdPalette(Int_t nSteps){
+inline std::vector<Int_t> createWarmToColdPalette(Int_t nSteps){
     std::vector<Int_t> warmToColdColors;
 
     // Define color stops (approximate warm to cold sequence)
@@ -111,7 +111,7 @@ std::vector<Int_t> createWarmToColdPalette(Int_t nSteps){
     return warmToColdColors;
 }
 
-std::vector<Int_t> set_palette(std::string palette = "Default", int n_colors = 0) {
+inline std::vector<Int_t> set_palette(std::string palette = "Default", int n_colors = 0) {
   if (palette == "ColdToWarm") {
     return createColdToWarmPalette(n_colors);
   } else if (palette == "WarmToCold") {
@@ -126,7 +126,7 @@ std::vector<Int_t> set_palette(std::string palette = "Default", int n_colors = 0
 }
 
 // --- WATERMARKS AND LABELS ----------------------------------------
-TLatex * TextLabel(const std::string & text, double xLoc, double yLoc, short color=kBlue,
+inline TLatex * TextLabel(const std::string & text, double xLoc, double yLoc, short color=kBlue,
     ETextAlign hAlign=kHAlignLeft, ETextAlign vAlign=kVAlignTop)
 {
   auto txtObj = new TLatex(xLoc, yLoc, text.c_str());
@@ -138,7 +138,7 @@ TLatex * TextLabel(const std::string & text, double xLoc, double yLoc, short col
 
   return txtObj;
 }
-TLatex * TextLabel(const std::string & text, ETextAlign align, bool inFrame=true, short color=kBlue)
+inline TLatex * TextLabel(const std::string & text, ETextAlign align, bool inFrame=true, short color=kBlue)
 {
   auto hAlign = static_cast<ETextAlign>(align - (align % 10));
   auto vAlign = static_cast<ETextAlign>(align % 10);
@@ -147,7 +147,7 @@ TLatex * TextLabel(const std::string & text, ETextAlign align, bool inFrame=true
   return TextLabel(text, xloc, yloc, color, hAlign, vAlign);
 }
 /// Return the "DUNE" part of the watermark string, which may have its own styling
-std::string DUNEWatermarkString()
+inline std::string DUNEWatermarkString()
 {
   return "#font[62]{DUNE}";
 }
@@ -157,7 +157,7 @@ std::string DUNEWatermarkString()
 /// \param loc   Location to write (upper left is default).   Specify using ETextAlign values from ROOT's TAttText
 /// \param inFrame  When using "top" vertical alignment, specifies whether the label is inside the plot frame or outside it
 /// \return      The TLatex instance for the text
-TLatex* Preliminary(ETextAlign loc=static_cast<ETextAlign>(kHAlignLeft + kVAlignTop), bool inFrame=true)
+inline TLatex* Preliminary(ETextAlign loc=static_cast<ETextAlign>(kHAlignLeft + kVAlignTop), bool inFrame=true)
 {
   return TextLabel(DUNEWatermarkString() + " Preliminary", loc, inFrame, kBlack);
 }
@@ -166,7 +166,7 @@ TLatex* Preliminary(ETextAlign loc=static_cast<ETextAlign>(kHAlignLeft + kVAlign
 
 
 
-void SetMyStyle(){
+inline void SetMyStyle(){
   // Axis titles ------------------------------------------
   gStyle->SetTitleFont(font, "xyz");
   gStyle->SetTitleFontSize(title_font_size);
@@ -277,14 +277,14 @@ void g_normalize(T* g, double scale, bool norm=1){
   }
 }
 
-void g_xshift(TGraph* graph, double shift) {
+inline void g_xshift(TGraph* graph, double shift) {
   int n = graph->GetN();
   double* x = graph->GetX();
 
   for (int i = 0; i < n; ++i) x[i] += shift;
 }
 
-void g_xrescale(TGraph* graph, double scale) {
+inline void g_xrescale(TGraph* graph, double scale) {
   int n = graph->GetN();
   double* x = graph->GetX();
 
@@ -292,8 +292,9 @@ void g_xrescale(TGraph* graph, double scale) {
 }
 
 // --- LINES ---------------------------------------------------------
-TLine* make_line(double x1, double y1, double x2, double y2,
+inline TLine* make_line(double x1, double y1, double x2, double y2,
                  int color = kBlack, int width = 2, int style = 1) {
+  std::cout << x1 << " " << x2 << " " << y1 << " " << y2 << std::endl;
   TLine* line = new TLine(x1, y1, x2, y2);
   line->SetLineColor(color);
   line->SetLineWidth(width);
@@ -301,8 +302,29 @@ TLine* make_line(double x1, double y1, double x2, double y2,
   return line;
 }
 
+inline TLine* make_horizontal_line(double y, TMultiGraph* mg,
+                            int color = kBlack, int width = 2, int style = 1,
+                            double x_min = 0., double x_max = 0.) {
+  if (x_min == x_max) {
+    x_min = mg->GetXaxis()->GetXmin();
+    x_max = mg->GetXaxis()->GetXmax();
+  }
+  return make_line(x_min, y, x_max, y, color, width, style);
+}
+
+inline TLine* make_vertical_line(double x, TMultiGraph* mg,
+                          int color = kBlack, int width = 2, int style = 1,
+                          double y_min = 0., double y_max = 0.) {
+  if (y_min == y_max) {
+    y_min = mg->GetYaxis()->GetXmin();
+    y_max = mg->GetYaxis()->GetXmax();
+  }
+  return make_line(x, y_min, x, y_max, color, width, style);
+}
+
+
 // --- LEGENDS -------------------------------------------------------
-TLegend* build_legend(TCanvas* gc, const char* opt="lpe",
+inline TLegend* build_legend(TCanvas* gc, const char* opt="lpe",
                       double x1=0.7, double y1=0.7, double x2=0.9, double y2=0.9,
                       int n_columns=1, float margin=0.4, float fill_alpha=0.0) {
   TLegend* legend = gc->BuildLegend(x1, y1, x2, y2);

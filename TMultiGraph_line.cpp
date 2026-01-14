@@ -10,10 +10,13 @@
 // ******************************************************************
 // *** Files, TGraphs and settings **********************************
 std::vector<TString> root_files   =  {
+  "./projects/Coldbox_Nov25/vgain_scan_results/M1_VGainScans_ResultSummary.root"
 };
 
 // If any subfolder, name can be "subfolder1/trgraph_name;1"
 std::vector<TString> tgraph_names =  {
+  "Bias_45V85/ch_18/SNR_DR;1",
+  "Bias_45V85/ch_19/SNR_DR;1",
 };
 
 // Very comfy to quickly save the canvas from the GUI
@@ -71,6 +74,14 @@ float margin = 0.2;
 const char* entry_opt = "pe"; // Options for the legend entries
 // --- Dune Marker --------------------------------------------------
 TString dune_marker = ""; // Options: "preliminary", "simulation"
+// --- Horizontal lines ---------------------------------------------
+std::vector<double> h_lines_y = {4.};
+std::vector<double> h_lines_x1 = {};
+std::vector<double> h_lines_x2 = {};
+// --- Vertical lines -----------------------------------------------
+std::vector<double> v_lines_x = {1500.};
+std::vector<double> v_lines_y1 = {};
+std::vector<double> v_lines_y2 = {};
 
 // ***************************************************************
 // ***************************************************************
@@ -185,22 +196,67 @@ void TMultiGraph_line(){
   mg->GetXaxis()->SetLabelOffset(label_offset_x); mg->GetYaxis()->SetLabelOffset(label_offset_y);
 
   mg->Draw("ape");
-  // line->Draw("same");
  
   if(x_axis_low!=0. || x_axis_up!=0.){
     std::cout << "Setting x-axis range: " << x_axis_low << " - " << x_axis_up << std::endl;
     mg->GetXaxis()->SetRangeUser(x_axis_low, x_axis_up);
+    for (size_t i=0; i<h_lines_y.size(); i++) {
+      if (h_lines_x1.size() == 0 && h_lines_x2.size() == 0) {
+        h_lines_x1.push_back(x_axis_low);
+        h_lines_x2.push_back(x_axis_up);
+      }
+    }
   }
   if(y_axis_low!=0. || y_axis_up!=0.){
     std::cout << "Setting y-axis range: " << y_axis_low << " - " << y_axis_up << std::endl;
+    for (size_t i=0; i<v_lines_x.size(); i++) {
+      if (v_lines_y1.size() == 0 && v_lines_y2.size() == 0) {
+        v_lines_y1.push_back(y_axis_low);
+        v_lines_y2.push_back(y_axis_up);
+      }
+    }
     mg->GetYaxis()->SetRangeUser(y_axis_low, y_axis_up);
   }
+
+  gc->Modified(); gc->Update();
+  
+  std::vector<TLine*> lines;
+  for (size_t i=0; i<h_lines_y.size(); i++) {
+    if (h_lines_x1.size() == 0 && h_lines_x2.size() == 0) {
+      lines.push_back(make_horizontal_line(h_lines_y[i], mg, kBlack, 2, 2));
+    }
+    else if (h_lines_x1.size() > i && h_lines_x2.size() > i) {
+      lines.push_back(make_horizontal_line(h_lines_y[i], mg, kBlack, 2, 2,
+                                           h_lines_x1[i], h_lines_x2[i]));
+    }
+    else {
+      std::cout << "Warning: Inconsistent number of horizontal line coordinates. Skipping line " << i << std::endl;
+      continue;
+    }
+  }
+
+  for (size_t i=0; i<v_lines_x.size(); i++) {
+    if (v_lines_y1.size() == 0 && v_lines_y2.size() == 0) {
+      lines.push_back(make_vertical_line(v_lines_x[i], mg, kBlack, 2, 2));
+    }
+    else if (v_lines_y1.size() > i && v_lines_y2.size() > i) {
+      lines.push_back(make_vertical_line(v_lines_x[i], mg, kBlack, 2, 2,
+                                         v_lines_y1[i], v_lines_y2[i]));
+    }
+    else {
+      std::cout << "Warning: Inconsistent number of vertical line coordinates. Skipping line " << i << std::endl;
+      continue;
+    }
+  }
+
 
   auto legend = build_legend(gc, entry_opt,
                              0.7, 0.7, 0.9, 0.9,
                              legend_ncolumns, margin, legend_fill_alpha);
-
   legend->Draw();
+  
+  for (auto& line : lines) line->Draw();
+
   if (dune_marker == "preliminary") Preliminary();
   gc->Modified(); gc->Update();
 }
