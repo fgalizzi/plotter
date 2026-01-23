@@ -153,13 +153,18 @@ inline std::string DUNEWatermarkString()
 }
 
 /// Write a "DUNE Preliminary" tag
-///
-/// \param loc   Location to write (upper left is default).   Specify using ETextAlign values from ROOT's TAttText
-/// \param inFrame  When using "top" vertical alignment, specifies whether the label is inside the plot frame or outside it
-/// \return      The TLatex instance for the text
 inline TLatex* Preliminary(ETextAlign loc=static_cast<ETextAlign>(kHAlignLeft + kVAlignTop), bool inFrame=true)
 {
   return TextLabel(DUNEWatermarkString() + " Preliminary", loc, inFrame, kBlack);
+}
+
+/// My tag
+inline TLatex* MyTag(ETextAlign loc=static_cast<ETextAlign>(kHAlignRight + kVAlignCenter), bool inFrame=true)
+{
+  auto my_tag = TextLabel("#font[62]{@Federico Galizzi}", loc, inFrame, kBlack);
+  my_tag->SetTextSize(0.035);
+  my_tag->SetTextAngle(270);
+  return my_tag;
 }
 
 
