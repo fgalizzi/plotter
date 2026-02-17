@@ -30,7 +30,7 @@
 // --- STYLE --------------------------------------------------------
 int line_width = 6;
 
-const int canvas_width = 1200;
+int canvas_width  = 1200;
 int canvas_height = 900;
 
 int   font = 42;
@@ -168,6 +168,14 @@ inline TLatex* MyTag(ETextAlign loc=static_cast<ETextAlign>(kHAlignRight + kVAli
 }
 
 
+/// My tag
+inline TLatex* CustomTag(std::string custom_tag, ETextAlign loc=static_cast<ETextAlign>(kHAlignRight + kVAlignCenter), bool inFrame=true)
+{
+  std::string label = "#font[62]{" + custom_tag + "}";
+  auto my_tag = TextLabel(label, loc, inFrame, kBlack);
+  my_tag->SetTextSize(0.035);
+  return my_tag;
+}
 
 
 
@@ -196,7 +204,7 @@ inline void SetMyStyle(){
   gStyle->SetPadBottomMargin(0.15);
 
   // Frame ------------------------------------------------
-  gStyle->SetFrameLineWidth(2);
+  gStyle->SetFrameLineWidth(1);
 
   // Palette 
   gStyle->SetPalette(kSunset); 
