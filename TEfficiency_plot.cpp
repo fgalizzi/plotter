@@ -7,6 +7,9 @@ TString root_file   =  "./projects/NP04_PDS_article/SelfTrigger/AnaST_Ch_11121.r
 TString teff_name   =  "Run_32099/he_efficiency_nofit;1";
 TString canvas_name = "./projects/NP04_PDS_article/SelfTrigger/EffHistoeee";
 
+// --- Histo Title --------------------------------------------------
+TString h_total_title  = "External trigger";
+TString h_passed_title = "Self trigger";
 // --- Axis title ---------------------------------------------------
 TString title_x = "PE";
 TString histo_title_y = "Counts";
@@ -31,6 +34,15 @@ int h_line_width = 1; // Line width of the TH1(s)
 float fill_alpha = 1.; // Opacity of filling color
 bool show_marker  = 1;
 double marker_alpha = 1.;
+// --- Legend settings ----------------------------------------------
+int legend_ncolumns = 1;
+float legend_fill_alpha = 1.0; // Fill alpha of the legend
+float margin = 0.17;
+const char* entry_opt = "p"; // Options for the legend entries
+double legend_x1 = 0.6;
+double legend_y1 = 0.65;
+double legend_x2 = 0.82;
+double legend_y2 = 0.85;
 
 
 void TEfficiency_plot(){
@@ -64,8 +76,10 @@ void TEfficiency_plot(){
   }
 
   TH1D* h_total = (TH1D*)teff->GetTotalHistogram();
+  h_total->SetTitle(h_total_title);
   make_histo_cute(h_total,  h_line_width, color_list[0], fill_alpha, show_marker, marker_alpha);
   TH1D* h_passed = (TH1D*)teff->GetPassedHistogram();
+  h_passed->SetTitle(h_passed_title);
   make_histo_cute(h_passed, h_line_width, color_list[1], fill_alpha, show_marker, marker_alpha);
 
   TCanvas* gc = new TCanvas(canvas_name, canvas_name, 0, 0, canvas_width, canvas_height);
@@ -75,6 +89,7 @@ void TEfficiency_plot(){
   bottomPad->Draw();
   topPad->SetBottomMargin(0.01);
   bottomPad->SetTopMargin(0.01);
+  bottomPad->SetBottomMargin(0.3);
   
   topPad->cd();
   TH1* topFrame;
@@ -105,6 +120,14 @@ void TEfficiency_plot(){
   
   h_total->Draw("hist same");
   h_passed->Draw("hist same");
+  auto legend = build_legend(topPad, entry_opt,
+                             legend_x1, legend_y1, legend_x2, legend_y2,
+                             legend_ncolumns, margin, legend_fill_alpha);
+  legend->SetTextFont(font); legend->SetTextSize(label_font_size);
+  auto entries = legend->GetListOfPrimitives();
+  auto entry = static_cast<TLegendEntry*>(entries->At(0));
+  entries->Remove(entry);
+  legend->Draw();
 
   bottomPad->cd();
   TH1* bottomFrame;
