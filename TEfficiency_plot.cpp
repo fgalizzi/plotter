@@ -114,8 +114,11 @@ void TEfficiency_plot(){
   topFrame->GetXaxis()->SetLabelFont(font);             topFrame->GetYaxis()->SetLabelFont(font);
   topFrame->GetXaxis()->SetLabelSize(0);                topFrame->GetYaxis()->SetLabelSize(label_font_size);
   topFrame->GetXaxis()->SetLabelOffset(label_offset_x); topFrame->GetYaxis()->SetLabelOffset(label_offset_y);
+  topFrame->GetXaxis()->SetTickLength(0.01);            topFrame->GetYaxis()->SetTickLength(0.02);
   topPad->SetLogy(log_y); topPad->SetLogx(log_x);
   topPad->SetGrid(hgrid_v, hgrid_h);
+  // remove tick from the upper boarder
+  topPad->SetTickx(0);
   
   
   h_total->Draw("hist same");
@@ -128,6 +131,7 @@ void TEfficiency_plot(){
   auto entry = static_cast<TLegendEntry*>(entries->At(0));
   entries->Remove(entry);
   legend->Draw();
+  topPad->RedrawAxis();
 
   bottomPad->cd();
   TH1* bottomFrame;
@@ -141,6 +145,7 @@ void TEfficiency_plot(){
   bottomFrame->GetXaxis()->SetLabelFont(font);             bottomFrame->GetYaxis()->SetLabelFont(font);
   bottomFrame->GetXaxis()->SetLabelSize(label_font_size);  bottomFrame->GetYaxis()->SetLabelSize(label_font_size);
   bottomFrame->GetXaxis()->SetLabelOffset(label_offset_x); bottomFrame->GetYaxis()->SetLabelOffset(label_offset_y);
+  bottomFrame->GetXaxis()->SetTickLength(0.02);            bottomFrame->GetYaxis()->SetTickLength(0.02);
   bottomPad->SetLogy(log_y); bottomPad->SetLogx(log_x);
   bottomPad->SetGrid(hgrid_v, hgrid_h);
   bottomFrame->SetNdivisions(505, "y");
