@@ -5,7 +5,7 @@
 
 TString root_file   =  "./projects/NP04_PDS_article/SelfTrigger/AnaST_Ch_11121.root";
 TString teff_name   =  "Run_32099/he_efficiency_nofit;1";
-TString canvas_name = "./projects/NP04_PDS_article/SelfTrigger/EffHistoeee";
+TString canvas_name = "./projects/NP04_PDS_article/SelfTrigger/EffHisto";
 
 // --- Histo Title --------------------------------------------------
 TString h_total_title  = "External trigger";

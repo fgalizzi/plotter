@@ -10,37 +10,46 @@
 // ******************************************************************
 // *** Files, TGraphs and settings **********************************
 std::vector<TString> root_files   =  {
-  "./projects/Coldbox_Nov25/vgain_scan_results/M1_VGainScans_ResultSummary.root"
+  "~/PhD/LowEnergy/flashmatch/data/testing_MLL_FM/nuecc/MLL_LightGBM_efficiency_dune10kt_charge_preselected.root",
+  // "~/PhD/LowEnergy/flashmatch/data/testing_MLL_FM/nuecc/MLL_Parametrizer_dune10kt_true_energy.root",
+  // "~/PhD/LowEnergy/flashmatch/data/testing_MLL_FM/nuees/MLL_Parametrizer_dune10kt_charge.root",
+  // "~/PhD/LowEnergy/flashmatch/data/testing_MLL_FM/nuees/MLL_Parametrizer_dune10kt_true_energy.root",
 };
 
 // If any subfolder, name can be "subfolder1/trgraph_name;1"
 std::vector<TString> tgraph_names =  {
-  "Bias_45V85/ch_18/SNR_DR;1",
-  "Bias_45V85/ch_19/SNR_DR;1",
+  "g_par2;1",
 };
 
 // Very comfy to quickly save the canvas from the GUI
-TString canvas_name = "";
+TString canvas_name = "./projects/FM_MLL/NueCC_ES_Charge_Etrue_calibration";
 
 // Leave it empty if the tgraph_names are already descriptive
 std::vector<TString> tgraph_titles = {
+  "#nu_{e} CC Charge",
+  "#nu_{e} CC True Energy",
+  "#nu_{e} ES Charge",
+  "#nu_{e} ES True Energy",
 };
 
 // ******************************************************************
 // ******************************************************************
 
+// --- Canvas -------------------------------------------------------
+TString canvas_title = "";
+bool horizontal_canvas = 0; // True 16:9, False 4:3
 // --- Palette ------------------------------------------------------
-// Choose among: Baseline, ColdToWarm, WarmToCold
+// Choose among: Baseline, ColdToWarm, WarmToCold, DuneWhite
 // If unknown, it will use the Baseline palette
 std::string palette = "";
 // --- Axis title ---------------------------------------------------
-TString title_x = "";
-TString title_y = "";
+TString title_x = "Expected PE";
+TString title_y = "#sigma [PE]";
 // --- Log scale and grid -------------------------------------------
 bool log_x  = 0;
 bool log_y  = 0;
-bool grid_h = 1;
-bool grid_v = 1;
+bool grid_h = 0;
+bool grid_v = 0;
 // --- Axis range ---------------------------------------------------
 // If (low==0 and up==0) it will set it automatically
 double x_axis_low = 0.;
@@ -50,18 +59,18 @@ double y_axis_up  = 0.;
 // --- Manipulation -------------------------------------------------
 bool normalize = 0; // Normalize the TGraph(s) amplitude
 bool norma = 0;
-double scale = 1.;
+double scale = .3;
 bool allign = 0;    // Allign the TGraph(s) to their maximum
 double max_position_percentage = 0.15;
 double x_rescale = 1.; // Rescale the x-axis of the TGraph(s) by this factor
 double x_shift   = 0.; // Apply offset to x-axis of the TGraph(s)
 std::vector<double> x_shifts = {}; // Apply x-shift to i-th graph
 // --- Graph settings -----------------------------------------------
-const char* draw_option = "pe"; // Generally, lp for TGraphs and pe for TGraphErrors
-int g_line_width = 2; // Line width of the TGraph(s)
+const char* draw_option = "lpe"; // Generally, lp for TGraphs and pe for TGraphErrors
+int g_line_width = 1; // Line width of the TGraph(s)
 int line_style = 1; // Line style of the TGraph(s)
 float end_error_size = 5.7;
-float marker_size = 1.; // Size of the markers in the TGraph(s)
+float marker_size = 0.7; // Size of the markers in the TGraph(s)
 int marker_style = 20; // Style of the markers in the TGraph(s)
 std::vector<int> color_indices = {}; // Indices of the colors to use from the palette
 std::vector<int> marker_styles = {}; // see: https://root.cern.ch/doc/master/classTAttMarker.html
@@ -71,15 +80,19 @@ std::vector<int> line_styles   = {};
 int legend_ncolumns = 1;
 float legend_fill_alpha = 1.0; // Fill alpha of the legend
 float margin = 0.2;
-const char* entry_opt = "pe"; // Options for the legend entries
+const char* entry_opt = "l"; // Options for the legend entries
+double legend_x1 = 0.56;
+double legend_y1 = 0.68;
+double legend_x2 = 0.82;
+double legend_y2 = 0.85;
 // --- Dune Marker --------------------------------------------------
-TString dune_marker = ""; // Options: "preliminary", "simulation"
+std::string dune_marker = ""; // Options: "preliminary", "simulation"
 // --- Horizontal lines ---------------------------------------------
-std::vector<double> h_lines_y = {4.};
+std::vector<double> h_lines_y = {};
 std::vector<double> h_lines_x1 = {};
 std::vector<double> h_lines_x2 = {};
 // --- Vertical lines -----------------------------------------------
-std::vector<double> v_lines_x = {1500.};
+std::vector<double> v_lines_x = {};
 std::vector<double> v_lines_y1 = {};
 std::vector<double> v_lines_y2 = {};
 
@@ -89,6 +102,8 @@ std::vector<double> v_lines_y2 = {};
 void TMultiGraph_line(){
   SetMyStyle();
   gStyle->SetEndErrorSize(end_error_size);
+  gStyle->SetOptStat(0);
+  gStyle->SetOptFit(0);
 
   bool loop_on_files, loop_on_tgraphs;
   size_t n_graph = 0;
@@ -110,7 +125,8 @@ void TMultiGraph_line(){
     loop_on_tgraphs = true;
   }
 
-  TGraphErrors* g[n_graph];
+  TGraph* g[n_graph];
+  // TGraphErrors* g[n_graph];
   TMultiGraph* mg = new TMultiGraph();
 
   std::vector<Int_t> color_list = set_palette(palette, n_graph); 
@@ -180,12 +196,18 @@ void TMultiGraph_line(){
     mg->Add(g[i], draw_option);
     input_file.Close();
   }
-  
+ 
+  if (horizontal_canvas){
+    canvas_width = 1600;
+    title_offset_y *= 0.7;
+  }
   TCanvas* gc = new TCanvas(canvas_name, canvas_name, 0, 0, canvas_width, canvas_height);
   gc->SetLogy(log_y); gc->SetLogx(log_x);
   gc->SetGrid(grid_v, grid_h);
+  if (!grid_v) gc->SetTickx(0);
+  if (!grid_h) gc->SetTicky(0);
 
-  mg->SetTitle("");
+  mg->SetTitle(canvas_title);
   mg->GetXaxis()->CenterTitle();                  mg->GetYaxis()->CenterTitle();
   mg->GetXaxis()->SetTitle(title_x);              mg->GetYaxis()->SetTitle(title_y);
   mg->GetXaxis()->SetTitleFont(font);             mg->GetYaxis()->SetTitleFont(font);
@@ -194,6 +216,7 @@ void TMultiGraph_line(){
   mg->GetXaxis()->SetLabelFont(font);             mg->GetYaxis()->SetLabelFont(font);
   mg->GetXaxis()->SetLabelSize(label_font_size);  mg->GetYaxis()->SetLabelSize(label_font_size);
   mg->GetXaxis()->SetLabelOffset(label_offset_x); mg->GetYaxis()->SetLabelOffset(label_offset_y);
+  mg->GetXaxis()->SetTickLength(0.02);            mg->GetYaxis()->SetTickLength(0.02);
 
   mg->Draw("ape");
  
@@ -251,12 +274,14 @@ void TMultiGraph_line(){
 
 
   auto legend = build_legend(gc, entry_opt,
-                             0.7, 0.7, 0.9, 0.9,
+                             legend_x1, legend_y1, legend_x2, legend_y2,
                              legend_ncolumns, margin, legend_fill_alpha);
   legend->Draw();
   
   for (auto& line : lines) line->Draw();
 
   if (dune_marker == "preliminary") Preliminary();
+  else if (dune_marker == "mytag") MyTag();
+  else if (dune_marker != "") CustomTag(dune_marker);
   gc->Modified(); gc->Update();
 }

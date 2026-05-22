@@ -51,6 +51,7 @@ const TColor kOIYellow(TColor::GetFreeColorIndex(),    0.95, 0.90, 0.25);
 const TColor kOIOrange(TColor::GetFreeColorIndex(),    0.90, 0.60, 0.00);
 const TColor kOIVermilion(TColor::GetFreeColorIndex(), 0.80, 0.40, 0.00);
 const TColor kBlack_(TColor::GetFreeColorIndex(), 0., 0., 0.);
+const TColor kWhite_(TColor::GetFreeColorIndex(), 1., 1., 1.);
 
 // Most used so far
 // std::vector<TColor> TColor_list = {kOIOrange, kOISkyBlue, kOIBlueGreen,
@@ -63,8 +64,10 @@ const TColor kBlack_(TColor::GetFreeColorIndex(), 0., 0., 0.);
 // std::vector<TColor> color_list = {kOIBlueGreen, kOIBlueGreen, kOIBlue, kOISkyBlue, kOIYellow,
                                   // kOIOrange, kOIVermilion, kOIRedPurple};
 // DUNE
-std::vector<TColor> TColor_list = {kOIOrange, kOISkyBlue, kOIVermilion,  
-                                  kOIBlueGreen, kOIRedPurple, kOIBlue, kOIYellow, kBlack_};  
+std::vector<TColor> TColor_list  = {kOIVermilion, kOISkyBlue, kOIOrange,
+                                    kOIBlueGreen, kOIRedPurple, kOIBlue, kOIYellow, kBlack_};  
+std::vector<TColor> TColor_listw = {kOIVermilion, kOISkyBlue, kOIOrange,
+                                    kOIBlueGreen, kOIRedPurple, kOIBlue, kOIYellow, kBlack_, kWhite_};  
 
 // Create Warmo<->Cold Palettes according to DUNE's kOIBlue and kOIRedPurple
 std::vector<Int_t> createColdToWarmPalette(Int_t nSteps) {
@@ -116,6 +119,12 @@ inline std::vector<Int_t> set_palette(std::string palette = "Default", int n_col
     return createColdToWarmPalette(n_colors);
   } else if (palette == "WarmToCold") {
     return createWarmToColdPalette(n_colors);
+  } else if (palette == "DuneWhite"){
+    std::vector<Int_t> dune_white_colors;
+    for (const auto& color : TColor_listw) {
+      dune_white_colors.push_back(color.GetNumber());
+    }
+    return dune_white_colors;
   } else {
     std::vector<Int_t> default_colors;
     for (const auto& color : TColor_list) {
@@ -174,6 +183,13 @@ inline TLatex* CustomTag(std::string custom_tag, ETextAlign loc=static_cast<ETex
   std::string label = "#font[62]{" + custom_tag + "}";
   auto my_tag = TextLabel(label, loc, inFrame, kBlack);
   my_tag->SetTextSize(0.035);
+  return my_tag;
+}
+// CustomTag with tunable TextSize
+inline TLatex* CustomTag(std::string custom_tag, float text_size){
+  std::string label = "#font[62]{" + custom_tag + "}";
+  auto my_tag = TextLabel(label, static_cast<ETextAlign>(kHAlignRight + kVAlignCenter), true, kBlack);
+  my_tag->SetTextSize(text_size);
   return my_tag;
 }
 
@@ -239,6 +255,7 @@ void make_histo_cute(T h, int line_width = 6,
                      int idx_color = 1,
                      double fill_alpha = 0.,
                      bool show_marker = false,
+                     double marker_size = 1.,
                      double marker_alpha = 0.5){
   const TColor black(TColor::GetFreeColorIndex(), 0.8, 0.4, 0.);
   int ncolor;
@@ -253,9 +270,47 @@ void make_histo_cute(T h, int line_width = 6,
  
   if (show_marker){
     h->SetMarkerStyle(21);
+    h->SetMarkerSize(marker_size);
     h->SetLineColorAlpha(ncolor, marker_alpha);
   }
 
+}
+
+inline TH1* get_histo_from_eff(TEfficiency* eff){
+  const TH1* h_total = eff->GetTotalHistogram();
+  const TAxis* ax = h_total->GetXaxis();
+
+  TH1D* h_eff = nullptr;
+
+  // Variable binning
+  if (ax->GetXbins()->GetSize() > 0) {
+
+    h_eff = new TH1D(
+      "h_eff",
+      eff->GetTitle(),
+      ax->GetNbins(),
+      ax->GetXbins()->GetArray()
+    );
+
+  }
+  // Fixed-width binning
+  else {
+
+    h_eff = new TH1D(
+      "h_eff",
+      eff->GetTitle(),
+      ax->GetNbins(),
+      ax->GetXmin(),
+      ax->GetXmax()
+    );
+  }
+
+  for (int i = 1; i <= h_eff->GetNbinsX(); ++i) {
+    h_eff->SetBinContent(i, eff->GetEfficiency(i));
+    h_eff->SetBinError(i, eff->GetEfficiencyErrorUp(i));
+  }
+
+  return h_eff;
 }
 
 // --- GRAPHS -------------------------------------------------------
@@ -285,8 +340,8 @@ void g_normalize(T* g, double scale, bool norm=1){
   if (!norm) max = 1.;
   for (int i=0; i<g->GetN(); i++){
     g->SetPointY(i, g->GetPointY(i)*scale/max);
-    if (g->InheritsFrom(TGraphErrors::Class()) || g->InheritsFrom(TGraphAsymmErrors::Class()))
-      g->SetPointError(i, g->GetErrorX(i), g->GetErrorY(i)*scale/max);
+    // if (g->InheritsFrom(TGraphErrors::Class()) || g->InheritsFrom(TGraphAsymmErrors::Class()))
+    //   g->SetPointError(i, g->GetErrorX(i), g->GetErrorY(i)*scale/max);
   }
 }
 
@@ -322,6 +377,7 @@ inline TLine* make_horizontal_line(double y, TMultiGraph* mg,
     x_min = mg->GetXaxis()->GetXmin();
     x_max = mg->GetXaxis()->GetXmax();
   }
+  std::cout << "Horizontal line: " << x_min << " " << x_max << " " << y << std::endl;
   return make_line(x_min, y, x_max, y, color, width, style);
 }
 
@@ -332,12 +388,14 @@ inline TLine* make_vertical_line(double x, TMultiGraph* mg,
     y_min = mg->GetYaxis()->GetXmin();
     y_max = mg->GetYaxis()->GetXmax();
   }
+  std::cout << "Vertical line: " << x << " " << y_min << " " << y_max << std::endl;
   return make_line(x, y_min, x, y_max, color, width, style);
 }
 
 
 // --- LEGENDS -------------------------------------------------------
-inline TLegend* build_legend(TCanvas* gc, const char* opt="lpe",
+template<typename T>
+inline TLegend* build_legend(T* gc, const char* opt="lpe",
                       double x1=0.7, double y1=0.7, double x2=0.9, double y2=0.9,
                       int n_columns=1, float margin=0.4, float fill_alpha=0.0) {
   TLegend* legend = gc->BuildLegend(x1, y1, x2, y2);
