@@ -32,11 +32,15 @@ int line_width = 6;
 
 int canvas_width  = 1200;
 int canvas_height = 900;
+float canvas_top_margin    = 0.05;
+float canvas_bottom_margin = 0.13;
+float canvas_left_margin   = 0.12;
+float canvas_right_margin  = 0.02;
 
-int   font = 42;
-float title_font_size = 0.043;
-float label_font_size = 0.04;
-float title_offset_x = 1.2;
+int   font = 132;
+float title_font_size = 0.056;
+float label_font_size = 0.052;
+float title_offset_x = 1.1;
 float label_offset_x = 0.007;
 float label_offset_y = 0.01;
 float title_offset_y = 1.12;
@@ -340,8 +344,8 @@ void g_normalize(T* g, double scale, bool norm=1){
   if (!norm) max = 1.;
   for (int i=0; i<g->GetN(); i++){
     g->SetPointY(i, g->GetPointY(i)*scale/max);
-    // if (g->InheritsFrom(TGraphErrors::Class()) || g->InheritsFrom(TGraphAsymmErrors::Class()))
-    //   g->SetPointError(i, g->GetErrorX(i), g->GetErrorY(i)*scale/max);
+    if (g->InheritsFrom(TGraphErrors::Class()) || g->InheritsFrom(TGraphAsymmErrors::Class()))
+      g->SetPointError(i, g->GetErrorX(i), g->GetErrorY(i)*scale/max);
   }
 }
 
@@ -359,9 +363,16 @@ inline void g_xrescale(TGraph* graph, double scale) {
   for (int i = 0; i < n; ++i) x[i] *= scale;
 }
 
+inline void g_subract_first_point_yvalue(TGraph* graph) {
+  int n = graph->GetN();
+  double y0 = graph->GetY()[0];
+
+  for (int i = 0; i < n; ++i) graph->SetPointY(i, graph->GetY()[i] - y0);
+}
+
 // --- LINES ---------------------------------------------------------
 inline TLine* make_line(double x1, double y1, double x2, double y2,
-                 int color = kBlack, int width = 2, int style = 1) {
+                 int color = kGray+2, int width = 2, int style = 7) {
   std::cout << x1 << " " << x2 << " " << y1 << " " << y2 << std::endl;
   TLine* line = new TLine(x1, y1, x2, y2);
   line->SetLineColor(color);
@@ -371,7 +382,7 @@ inline TLine* make_line(double x1, double y1, double x2, double y2,
 }
 
 inline TLine* make_horizontal_line(double y, TMultiGraph* mg,
-                            int color = kBlack, int width = 2, int style = 1,
+                            int color = kGray+2, int width = 2, int style = 7,
                             double x_min = 0., double x_max = 0.) {
   if (x_min == x_max) {
     x_min = mg->GetXaxis()->GetXmin();
@@ -382,7 +393,7 @@ inline TLine* make_horizontal_line(double y, TMultiGraph* mg,
 }
 
 inline TLine* make_vertical_line(double x, TMultiGraph* mg,
-                          int color = kBlack, int width = 2, int style = 1,
+                          int color = kGray+2, int width = 2, int style = 7,
                           double y_min = 0., double y_max = 0.) {
   if (y_min == y_max) {
     y_min = mg->GetYaxis()->GetXmin();
@@ -394,33 +405,86 @@ inline TLine* make_vertical_line(double x, TMultiGraph* mg,
 
 
 // --- LEGENDS -------------------------------------------------------
+// template<typename T>
+// inline TLegend* build_legend(T* gc, const char* opt="lpe", float legend_marker_size=1,
+//                       double x1=0.7, double y1=0.7, double x2=0.9, double y2=0.9,
+//                       int n_columns=1, float margin=0.4, float fill_alpha=0.0) {
+//   TLegend* legend = gc->BuildLegend(x1, y1, x2, y2);
+//   legend->SetFillStyle(0);
+//   legend->SetBorderSize(0);
+//   legend->SetTextSize(0.046);
+//   legend->SetTextFont(42);
+//   legend->SetNColumns(n_columns);;
+//   legend->SetEntrySeparation(0.2);
+//   legend->SetMargin(margin);
+//   if (fill_alpha > 0.0) legend->SetFillStyle(1001); // Solid fill
+//   else                  legend->SetFillStyle(0); // No fill
+//   legend->SetFillColorAlpha(kWhite, fill_alpha);
+//
+//   TList* entries = legend->GetListOfPrimitives();
+//
+//   TIter next(entries);
+//     TObject* obj;
+//     while ((obj = next())) {
+//     TLegendEntry* entry = dynamic_cast<TLegendEntry*>(obj);
+//     if (entry) {
+//       entry->SetOption(opt);
+//       printf("Legend entry: %s, option: %s\n", entry->GetLabel(), entry->GetOption());
+//       entry->SetMarkerSize(6);
+//     }
+//   }
+//
+//   return legend;
+// }
+//
 template<typename T>
-inline TLegend* build_legend(T* gc, const char* opt="lpe",
-                      double x1=0.7, double y1=0.7, double x2=0.9, double y2=0.9,
-                      int n_columns=1, float margin=0.4, float fill_alpha=0.0) {
-  TLegend* legend = gc->BuildLegend(x1, y1, x2, y2);
-  legend->SetFillStyle(0);
-  legend->SetBorderSize(0);
-  legend->SetTextSize(0.037);
-  legend->SetTextFont(42);
-  legend->SetNColumns(n_columns);;
-  legend->SetEntrySeparation(0.2);
-  legend->SetMargin(margin);
-  if (fill_alpha > 0.0) legend->SetFillStyle(1001); // Solid fill
-  else                   legend->SetFillStyle(0); // No fill
-  legend->SetFillColorAlpha(kWhite, fill_alpha);
+inline TLegend* build_legend(T* gc,
+                             const char* opt="lpe",
+                             double x1=0.7, double y1=0.7,
+                             double x2=0.9, double y2=0.9,
+                             int n_columns=1,
+                             float margin=0.4,
+                             float fill_alpha=0.0,
+                             float legend_marker_size=1.2,
+                             TMultiGraph* mg_original = nullptr) {
 
-  TList* entries = legend->GetListOfPrimitives();
+    TLegend* legend = new TLegend(x1, y1, x2, y2);
 
-  TIter next(entries);
-    TObject* obj;
-    while ((obj = next())) {
-    TLegendEntry* entry = dynamic_cast<TLegendEntry*>(obj);
-    if (entry) {
-      entry->SetOption(opt);
+    legend->SetFillStyle(fill_alpha > 0.0 ? 1001 : 0);
+    legend->SetBorderSize(0);
+    legend->SetTextSize(label_font_size);
+    legend->SetTextFont(font);
+    legend->SetNColumns(n_columns);
+    legend->SetEntrySeparation(0.2);
+    legend->SetMargin(margin);
+
+    if (fill_alpha > 0.0)
+        legend->SetFillColorAlpha(kWhite, fill_alpha);
+
+    // TMultiGraph* mg = dynamic_cast<TMultiGraph*>(gc);
+    // Clone the TMultiGraph to avoid modifying the original one
+    TMultiGraph* mg = dynamic_cast<TMultiGraph*>(mg_original);
+
+    if (mg) {
+        TList* graphs = mg->GetListOfGraphs();
+
+        TIter next(graphs);
+        TObject* obj;
+
+        while ((obj = next())) {
+
+            TGraph* g = dynamic_cast<TGraph*>(obj);
+            if (!g) continue;
+
+            TGraph* gl = dynamic_cast<TGraph*>(g->Clone());
+
+            gl->SetMarkerSize(legend_marker_size);
+
+            TLegendEntry* entry =
+                legend->AddEntry(gl, g->GetTitle(), opt);
+            printf("Legend entry: %s, option: %s\n", g->GetTitle(), opt);
+        }
     }
-  }
 
-  return legend;
+    return legend;
 }
-
